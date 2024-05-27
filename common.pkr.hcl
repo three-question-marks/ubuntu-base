@@ -40,6 +40,7 @@ variables {
     guest_os_type = "Ubuntu_64"
     hard_drive_interface = "scsi"
     headless = false
+    install_cloud_init = false
     memory = 2048
     os_arch = "amd64"
     shutdown_command = "shutdown now"
@@ -50,7 +51,8 @@ variables {
 }
 
 locals {
-    build_name = "${var.os_name}_${var.os_version}_${var.os_arch}"
+    suffix = var.install_cloud_init ? "_cloud-init" : ""
+    build_name = "${var.os_name}_${var.os_version}${local.suffix}_${var.os_arch}"
     http_content = var.http_content != null ? var.http_content : {
         "/user-data": file("http/user-data"),
         "/meta-data": jsonencode({
@@ -64,6 +66,7 @@ locals {
     provisioners_env = {
         "DEBIAN_FRONTEND": "noninteractive",
         "PKR_APT_MIRROR": var.apt_mirror,
+        "PKR_INSTALL_CLOUD_INIT": var.install_cloud_init,
         "PKR_ROOTFS_URL": var.rootfs_url,
     }
 }
