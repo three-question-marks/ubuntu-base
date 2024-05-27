@@ -1,0 +1,9 @@
+{
+    "acpi_shutdown": false,
+    "checksum_types": [],
+    "only_download_iso": true,
+    "os_name": "download",
+    "os_version": "iso",
+    "rootfs_url": "",
+    "vboxmanage_post": []
+}

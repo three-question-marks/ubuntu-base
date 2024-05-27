@@ -47,7 +47,7 @@ source "virtualbox-iso" "builder" {
     iso_url                 = var.iso_url
     memory                  = var.memory
     shutdown_command        = var.shutdown_command
-    skip_export             = var.skip_export
+    skip_export             = local.skip_export
     ssh_private_key_file    = var.ssh_private_key_file
     ssh_timeout             = var.ssh_timeout
     ssh_username            = var.ssh_username

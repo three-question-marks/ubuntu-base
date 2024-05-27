@@ -42,6 +42,7 @@ variables {
     headless = false
     install_cloud_init = false
     memory = 2048
+    only_download_iso = false
     os_arch = "amd64"
     shutdown_command = "shutdown now"
     ssh_timeout = "5m"
@@ -62,6 +63,7 @@ locals {
         }),
     }
     output_directory = "${var.base_output_directory}/${local.build_name}"
+    skip_export = var.skip_export != null ? var.skip_export : var.only_download_iso
     base_absolute_path = abspath("${local.output_directory}/${local.build_name}")
     provisioners_env = {
         "DEBIAN_FRONTEND": "noninteractive",
@@ -69,6 +71,7 @@ locals {
         "PKR_INSTALL_CLOUD_INIT": var.install_cloud_init,
         "PKR_ROOTFS_URL": var.rootfs_url,
     }
+    provisioners_sources = var.only_download_iso ? [ "" ] : null
 }
 
 build {
@@ -81,21 +84,25 @@ build {
 
     provisioner "shell" {
         env = local.provisioners_env
+        only = local.provisioners_sources
         scripts = fileset(path.root, "scripts/10_install/*.sh")
     }
     provisioner "shell" {
         env = local.provisioners_env
+        only = local.provisioners_sources
         scripts = fileset(path.root, "scripts/30_chroot/*.sh")
         remote_path = "/mnt/inside-chroot.sh"
         execute_command = "chmod +x {{ .Path }}; chroot /mnt /bin/bash -c '{{ .Vars }} /inside-chroot.sh'"
     }
     provisioner "shell" {
         env = local.provisioners_env
+        only = local.provisioners_sources
         scripts = fileset(path.root, "scripts/50_postinstall/*.sh")
     }
     provisioner "shell" {
         expect_disconnect = true
         inline = [ "shutdown -r now" ]
+        only = local.provisioners_sources
     }
     dynamic "provisioner" {
         labels = [ "shell" ]
@@ -103,6 +110,7 @@ build {
         for_each = [ "70_custom", "90_cleanup" ]
         content {
             env = local.provisioners_env
+            only = local.provisioners_sources
             scripts = fileset(path.root, "scripts/${provisioner.value}/*.sh")
         }
     }
