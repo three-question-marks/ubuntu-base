@@ -1,0 +1,29 @@
+name: Setup packer
+description: Use to setup packer
+inputs:
+  init-template:
+    description: Template to use in packer init command
+    required: true
+    type: string
+  plugins-cache-key-prefix:
+    description: Prefix of packer plugins cache
+    required: true
+    default: ""
+      
+runs:
+  using: composite
+  steps:
+    - name: Setup packer
+      uses: hashicorp/setup-packer@v3
+      with:
+        version: latest
+
+    - name: Cache packer plugins
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/.config/packer/plugins
+        key: |
+          ${{ inputs.plugins-cache-key-prefix }}${{ hashFiles(inputs.init-template) }}
+    - name: Run packer init
+      run: packer init "${{ inputs.init-template }}"
+      shell: bash

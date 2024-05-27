@@ -1,0 +1,135 @@
+name: Validate templates and produce image
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  PACKER_CACHE_DIR: ./packer_cache
+  PKR_VAR_headless: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: ./.github/actions/setup-packer
+        with:
+          init-template: virtualbox.pkr.hcl
+          plugins-cache-key-prefix: packer-plugins-
+
+      - name: Run packer validate
+        run: |
+          for file in $(ls -1 ./*.pkrvars.json | grep -v .auto.pkrvars.json); do
+            packer validate -var-file="$file" .
+          done
+
+  download-iso:
+    needs: validate
+    if: |
+      ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Packer
+        uses: ./.github/actions/setup-packer
+        with:
+          init-template: virtualbox.pkr.hcl
+          plugins-cache-key-prefix: packer-plugins-
+
+      - name: Install Virtualbox
+        uses: ./.github/actions/install-virtualbox
+
+      - name: Cache ISO
+        uses: actions/cache@v4
+        with:
+          path: packer_cache/*.iso
+          key: packer-iso-${{ hashFiles('common.auto.pkrvars.json') }}
+      - name: Download ISO
+        run: |
+          until packer build -var-file=only-download-iso.pkrvars.json .; do sleep 10; done
+        timeout-minutes: 60
+        env:
+          PACKER_LOG: 1
+
+  build:
+    needs: download-iso
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cloud-init:
+          - true
+          - false
+    env:
+      image-name: ubuntu-base_22.04${{ matrix.cloud-init && '_cloud-init' || '' }}_amd64
+      var-file: ubuntu-base_22.04.pkrvars.json
+
+      PKR_VAR_install_cloud_init: ${{ matrix.cloud-init }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-packer
+        with:
+          init-template: virtualbox.pkr.hcl
+          plugins-cache-key-prefix: packer-plugins-
+
+      - uses: ./.github/actions/install-virtualbox
+
+      - name: Cache ISO
+        uses: actions/cache@v4
+        with:
+          path: packer_cache/*.iso
+          key: packer-iso-${{ hashFiles('common.auto.pkrvars.json') }}
+      - name: Run packer build
+        run: packer build '-var-file=${{ env.var-file }}' .
+        env:
+          PACKER_LOG: 1
+
+      - name: Save Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.image-name }}
+          if-no-files-found: error
+          path: output/${{ env.image-name }}/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate build tag
+        id: tag
+        run: |
+          echo "value=$(date -u +'%Y.%m.%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output
+
+      - name: Concatenate checksums
+        run: |
+          cat output/*/MD5SUMS > output/MD5SUMS
+          cat output/*/SHA256SUMS > output/SHA256SUMS
+          rm -f output/*/*SUMS
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          draft: ${{ github.event_name == 'workflow_dispatch' }}
+          files: |
+            output/*/*
+            output/*SUMS
+          tag_name: ${{ steps.tag.outputs.value }}
+          prerelease: true

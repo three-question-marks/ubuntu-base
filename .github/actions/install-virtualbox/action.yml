@@ -1,0 +1,12 @@
+name: Install Virtualbox
+description: Use to install virtualbox
+      
+runs:
+  using: composite
+  steps:
+    - name: Update apt package index
+      run: sudo apt-get update || true
+      shell: bash
+    - name: Install Virtualbox
+      run: sudo apt-get -y install --no-install-recommends virtualbox
+      shell: bash
