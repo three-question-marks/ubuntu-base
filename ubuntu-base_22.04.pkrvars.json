@@ -1,0 +1,5 @@
+{
+    "os_name": "ubuntu-base",
+    "os_version": "22.04",
+    "rootfs_url": "https://cdimage.ubuntu.com/ubuntu-base/releases/22.04.4/release/ubuntu-base-22.04-base-amd64.tar.gz"
+}

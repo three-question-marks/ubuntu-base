@@ -1,0 +1,17 @@
+## template: jinja
+#cloud-config
+
+# SSH
+# https://cloudinit.readthedocs.io/en/latest/reference/modules.html#ssh
+disable_root: false
+
+# SSH AuthKey Fingerprints
+# https://cloudinit.readthedocs.io/en/latest/reference/modules.html#ssh-authkey-fingerprints
+no_ssh_fingerprints: true
+
+# Users and Groups
+# https://cloudinit.readthedocs.io/en/latest/reference/modules.html#users-and-groups
+users:
+  - default
+  - name: root
+    ssh_authorized_keys: {{ "{{ ds.meta_data.public_ssh_keys }}" }}

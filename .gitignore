@@ -1,0 +1,4 @@
+output/
+packer_cache/
+scripts/70_custom/
+!scripts/70_custom/00_placeholder.sh

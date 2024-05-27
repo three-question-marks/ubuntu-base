@@ -1,0 +1,5 @@
+{
+    "base_output_directory": "output",
+    "iso_checksum": "file:https://old-releases.ubuntu.com/releases/jammy/SHA256SUMS",
+    "iso_url": "https://old-releases.ubuntu.com/releases/jammy/ubuntu-22.04.3-live-server-amd64.iso"
+}
