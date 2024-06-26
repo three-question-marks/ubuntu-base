@@ -72,7 +72,8 @@ jobs:
           - true
           - false
     env:
-      image-name: ubuntu-base_22.04${{ matrix.cloud-init && '_cloud-init' || '' }}_amd64
+      cloud-init-suffix: ${{ matrix.cloud-init && '_cloud-init' || '' }}
+      qemu-agent-suffix: ${{ matrix.qemu-agent && '_qemu' || '' }}
       var-file: ubuntu-base_22.04.pkrvars.json
 
       PKR_VAR_install_cloud_init: ${{ matrix.cloud-init }}
@@ -100,6 +101,8 @@ jobs:
 
       - name: Save Artifacts
         uses: actions/upload-artifact@v4
+        env:
+          image-name: ubuntu-base_22.04${{ env.cloud-init-suffix }}${{ env.qemu-agent-suffix }}_amd64
         with:
           name: ${{ env.image-name }}
           if-no-files-found: error
