@@ -41,6 +41,7 @@ variables {
     hard_drive_interface = "scsi"
     headless = false
     install_cloud_init = false
+    install_qemu_agent = false
     memory = 2048
     only_download_iso = false
     os_arch = "amd64"
@@ -52,7 +53,9 @@ variables {
 }
 
 locals {
-    suffix = var.install_cloud_init ? "_cloud-init" : ""
+    cloud_init_suffix = var.install_cloud_init ? "_cloud-init" : ""
+    qemu_agent_suffix = var.install_qemu_agent ? "_qemu": ""
+    suffix = "${local.cloud_init_suffix}${local.qemu_agent_suffix}"
     build_name = "${var.os_name}_${var.os_version}${local.suffix}_${var.os_arch}"
     http_content = var.http_content != null ? var.http_content : {
         "/user-data": file("http/user-data"),
@@ -69,6 +72,7 @@ locals {
         "DEBIAN_FRONTEND": "noninteractive",
         "PKR_APT_MIRROR": var.apt_mirror,
         "PKR_INSTALL_CLOUD_INIT": var.install_cloud_init,
+        "PKR_INSTALL_QEMU_AGENT": var.install_qemu_agent,
         "PKR_ROOTFS_URL": var.rootfs_url,
     }
     provisioners_sources = var.only_download_iso ? [ "" ] : null
